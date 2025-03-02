@@ -5,26 +5,25 @@
 #include <stdexcept>
 #include <cstdint>
 
-namespace base64
+namespace base64safe
 {
-	inline static const char kEncodeLookup[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-	inline static const char kPadCharacter = '=';
+	constexpr char kEncodeLookup[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+	constexpr char kPadCharacter = '=';
 
 	using byte = std::uint8_t;
 
-	inline std::string encode(const std::vector<byte>& input)
+	inline std::string encode(const std::string &input)
 	{
 		std::string encoded;
-		encoded.reserve(((input.size() / 3) + (input.size() % 3 > 0)) * 4);
+		encoded.reserve(((input.size() + 2) / 3) * 4);
 
-		std::uint32_t temp{};
 		auto it = input.begin();
 
 		for(std::size_t i = 0; i < input.size() / 3; ++i)
 		{
-			temp  = (*it++) << 16;
-			temp += (*it++) << 8;
-			temp += (*it++);
+			std::uint32_t temp = static_cast<byte>(*it++) << 16;
+			temp += static_cast<byte>(*it++) << 8;
+			temp += static_cast<byte>(*it++);
 			encoded.append(1, kEncodeLookup[(temp & 0x00FC0000) >> 18]);
 			encoded.append(1, kEncodeLookup[(temp & 0x0003F000) >> 12]);
 			encoded.append(1, kEncodeLookup[(temp & 0x00000FC0) >> 6 ]);
@@ -33,26 +32,26 @@ namespace base64
 
 		switch(input.size() % 3)
 		{
-		case 1:
-			temp = (*it++) << 16;
-			encoded.append(1, kEncodeLookup[(temp & 0x00FC0000) >> 18]);
-			encoded.append(1, kEncodeLookup[(temp & 0x0003F000) >> 12]);
-			encoded.append(2, kPadCharacter);
-			break;
-		case 2:
-			temp  = (*it++) << 16;
-			temp += (*it++) << 8;
-			encoded.append(1, kEncodeLookup[(temp & 0x00FC0000) >> 18]);
-			encoded.append(1, kEncodeLookup[(temp & 0x0003F000) >> 12]);
-			encoded.append(1, kEncodeLookup[(temp & 0x00000FC0) >> 6 ]);
-			encoded.append(1, kPadCharacter);
-			break;
+			case 1: {
+				std::uint32_t temp = static_cast<byte>(*it++) << 16;
+				encoded.append(1, kEncodeLookup[(temp & 0x00FC0000) >> 18]);
+				encoded.append(1, kEncodeLookup[(temp & 0x0003F000) >> 12]);
+				encoded.append(2, kPadCharacter);
+			} break;
+			case 2: {              
+					std::uint32_t temp  = static_cast<byte>(*it++) << 16;
+					temp += static_cast<byte>(*it++) << 8;
+					encoded.append(1, kEncodeLookup[(temp & 0x00FC0000) >> 18]);
+					encoded.append(1, kEncodeLookup[(temp & 0x0003F000) >> 12]);
+					encoded.append(1, kEncodeLookup[(temp & 0x00000FC0) >> 6 ]);
+					encoded.append(1, kPadCharacter);
+			} break;							
 		}
 
 		return encoded;
 	}
 
-	inline std::vector<byte> decode(const std::string& input)
+	inline std::string decode(const std::string& input)
 	{
 		if(input.length() % 4)
 			throw std::runtime_error("Invalid base64 length!");
@@ -79,8 +78,8 @@ namespace base64
 				if     (*it >= 0x41 && *it <= 0x5A) temp |= *it - 0x41;
 				else if(*it >= 0x61 && *it <= 0x7A) temp |= *it - 0x47;
 				else if(*it >= 0x30 && *it <= 0x39) temp |= *it + 0x04;
-				else if(*it == 0x2B)                temp |= 0x3E;
-				else if(*it == 0x2F)                temp |= 0x3F;
+				else if(*it == 0x2D)                temp |= 0x3E;
+				else if(*it == 0x5F)                temp |= 0x3F;
 				else if(*it == kPadCharacter)
 				{
 					switch(input.end() - it)
@@ -88,15 +87,15 @@ namespace base64
 					case 1:
 						decoded.push_back((temp >> 16) & 0x000000FF);
 						decoded.push_back((temp >> 8 ) & 0x000000FF);
-						return decoded;
+						return std::string(decoded.begin(), decoded.end());
 					case 2:
 						decoded.push_back((temp >> 10) & 0x000000FF);
-						return decoded;
+						return std::string(decoded.begin(), decoded.end());
 					default:
-						throw std::runtime_error("Invalid padding in base64!");
+						throw std::runtime_error("Invalid padding in safe base64!");
 					}
 				}
-				else throw std::runtime_error("Invalid character in base64!");
+				else throw std::runtime_error("Invalid character in safe base64!");
 
 				++it;
 			}
@@ -106,6 +105,6 @@ namespace base64
 			decoded.push_back((temp      ) & 0x000000FF);
 		}
 
-		return decoded;
+		return std::string(decoded.begin(), decoded.end());
 	}
 }
