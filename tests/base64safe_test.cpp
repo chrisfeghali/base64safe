@@ -1,3 +1,7 @@
+// This file is part of base64safe
+// Copyright (c) 2025 Christopher Feghali
+// SPDX-License-Identifier: 0BSD
+
 #include "base64safe.h"
 
 #include <gtest/gtest.h>

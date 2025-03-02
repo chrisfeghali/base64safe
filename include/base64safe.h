@@ -1,3 +1,7 @@
+// This file is part of base64safe
+// Copyright (c) 2025 Christopher Feghali
+// Copyright (c) 2019-2021 Martin Vorbrodt
+// SPDX-License-Identifier: 0BSD
 #pragma once
 
 #include <string>
