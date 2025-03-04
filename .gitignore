@@ -3,3 +3,4 @@
 subprojects/*
 !subprojects/packagefiles/
 !subprojects/*.wrap
+.python-version
